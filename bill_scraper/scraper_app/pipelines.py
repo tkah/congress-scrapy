@@ -13,7 +13,7 @@ class BillPipeline(object):
         bill = Bills(**item)
 
         try:
-            session.add(bill)
+            session.merge(bill)
             session.commit()
         except:
             session.rollback()

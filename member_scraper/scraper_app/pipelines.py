@@ -13,7 +13,7 @@ class MemberPipeline(object):
         member = Members(**item)
 
         try:
-            session.add(member)
+            session.merge(member)
             session.commit()
         except:
             session.rollback()

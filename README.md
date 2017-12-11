@@ -6,7 +6,7 @@ Two scrapers that output [Congressional Bill data](https://www.gpo.gov/fdsys/bul
 
 * Install the python dependencies: `pip install -r requirements.txt`
 * Create a `settings.py` file in the following directories - `bill_scraper/scraper_app/` and `member_scraper/scraper_app/`.
-   * `bill_scraper/scraper_app/settings.py`:
+   * **bill_scraper/scraper_app/settings.py**:
      ```python
         BOT_NAME = 'congressionalbills'
         SPIDER_MODULES = ['scraper_app.spiders']
@@ -21,7 +21,7 @@ Two scrapers that output [Congressional Bill data](https://www.gpo.gov/fdsys/bul
         ITEM_PIPELINES = { 'scraper_app.pipelines.BillPipeline': 200 }
         CONGRESS = '[YOUR CONGRESS NUMBER]'
      ```
-   * `member_scraper/scraper_app/settings.py`:
+   * **member_scraper/scraper_app/settings.py**:
      ```python
         BOT_NAME = 'congressionalmembers'
         SPIDER_MODULES = ['scraper_app.spiders']

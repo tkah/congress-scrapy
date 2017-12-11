@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ARRAY
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ARRAY, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine.url import URL
 
@@ -28,7 +28,7 @@ class Bills(DeclarativeBase):
     policy_area = Column('policy_area', ARRAY(String))
     subjects = Column('subjects', ARRAY(String))
     bill_type = Column('bill_type', String)
-    summary = Column('summary', String, nullable=True)
+    summary = Column('summary', Text, nullable=True)
     cosponsor_ids = Column('cosponsor_ids', ARRAY(String))
     sponsor_ids = Column('sponsor_ids', ARRAY(String))
     actions = Column('actions', ARRAY(String))
