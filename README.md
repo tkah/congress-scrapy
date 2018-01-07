@@ -38,3 +38,4 @@ Two scrapers that output [Congressional Bill data](https://www.gpo.gov/fdsys/bul
 * Run each pipeline from within its respective directory - `bill_scraper` or `member_scraper`.
 * Bill Scraper command: `scrapy crawl congressionalbills`
 * Member Scraper command: `scrapy crawl congressionalmembers`
+* Combine Propublica member information with with bulk data by running `get_member_details.py` after the XML bulk data scraper.

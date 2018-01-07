@@ -1,3 +1,4 @@
+import datetime
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine.url import URL
@@ -18,7 +19,7 @@ def create_members_table(engine):
 
 class Members(DeclarativeBase):
     """Sqlalchemy members model"""
-    __tablename__ = "members"
+    __tablename__ = "Members"
 
     id = Column(String, primary_key=True)
     party = Column('party', String)
@@ -29,3 +30,5 @@ class Members(DeclarativeBase):
     first_name = Column('first_name', String)
     district = Column('district', String)
     district_code = Column('district_code', String)
+    created_at = Column('createdAt', DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column('updatedAt', DateTime, default=datetime.datetime.utcnow)

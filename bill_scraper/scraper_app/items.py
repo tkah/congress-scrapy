@@ -15,9 +15,10 @@ class Bill(Item):
     cosponsor_ids = Field()
     sponsor_ids = Field()
     summary = Field(output_processor=TakeFirst())
-    actions = Field(input_processor=Identity())
+    actions = Field(output_processor=Join())
     congress = Field(output_processor=Join())
-    related_bills = Field()
+    related_bills = Field(output_processor=Join())
+    created_at = Field()
 
 class BillAction(Item):
     """Container for action items"""

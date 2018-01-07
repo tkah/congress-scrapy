@@ -54,15 +54,15 @@ class BillSpider(CrawlSpider):
 
             actions_arr = []
             for action in selector.select('//billStatus/bill/actions/item'):
-                actions_arr.append(json.dumps(self.parse_actions(action)))
+                actions_arr.append(self.parse_actions(action))
 
-            loader.add_value('actions', actions_arr)
+            loader.add_value('actions', json.dumps(actions_arr))
 
             related_bills_arr = []
             for bill in selector.select('//billStatus/bill/relatedBills/item'):
-                related_bills_arr.append(json.dumps(self.parse_related_bills(bill)))
+                related_bills_arr.append(self.parse_related_bills(bill))
 
-            loader.add_value('related_bills', related_bills_arr)
+            loader.add_value('related_bills', json.dumps(related_bills_arr))
 
             loader.add_value('congress', CONGRESS)
             loader.add_value('id', response.url.split("/")[-1][11:-4])
