@@ -23,23 +23,23 @@ class MemberSpider(CrawlSpider):
     ]
 
     house_fields = {
-        'id': './/member-info/bioguideID/text()',
-        'party': './/member-info/party/text()',
-        'state': './/member-info/state/@postal-code',
-        'phone': './/member-info/phone/text()',
-        'last_name': './/member-info/lastname/text()',
-        'first_name': './/member-info/firstname/text()',
-        'district_code': './/statedistrict/text()',
-        'district': './/member-info/district/text()'
+        'id': './member-info/bioguideID/text()',
+        'party': './member-info/party/text()',
+        'state': './member-info/state/@postal-code',
+        'phone': './member-info/phone/text()',
+        'last_name': './member-info/lastname/text()',
+        'first_name': './member-info/firstname/text()',
+        'district_code': './statedistrict/text()',
+        'district': './member-info/district/text()'
     }
 
     senate_fields = {
-        'id': './/bioguide_id/text()',
-        'party': './/party/text()',
-        'state': './/state/text()',
-        'phone': './/phone/text()',
-        'last_name': './/last_name/text()',
-        'first_name': './/first_name/text()'
+        'id': './bioguide_id/text()',
+        'party': './party/text()',
+        'state': './state/text()',
+        'phone': './phone/text()',
+        'last_name': './last_name/text()',
+        'first_name': './first_name/text()'
     }
 
     def parse(self, response):
@@ -71,4 +71,3 @@ class MemberSpider(CrawlSpider):
 
                 loader.add_value('body', 'house')
                 yield loader.load_item()
-        
