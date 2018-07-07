@@ -74,4 +74,30 @@ with open('data/Dailykospres.csv', newline='') as csvfile:
             d
         ))
     conn.commit()
+
+with open('data/20m_PP_Scores.csv', newline='') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+    for row in reader:
+        details = {}
+        detailsArray = []
+
+        if row[0] == "STATEFP":
+            continue
+
+        fips = row[0]
+        district = row[1]
+        gerrymander_score = 100 - int(row[8])
+
+        cur.execute("""SELECT id FROM public."States" WHERE fips_code = %s""", (fips,))
+        state = cur.fetchone()[0]
+
+        sql = """UPDATE public."Districts"
+                    SET gerrymander_score = %s
+                    WHERE id = %s"""
+
+        cur.execute(sql, (
+            gerrymander_score,
+            state + district
+        ))
+    conn.commit()
 cur.close()
