@@ -2,16 +2,20 @@
     Grab members from Github, get their Propublica data and write it back to DB
 """
 import psycopg2
+import urllib.parse
 import json
+import datetime
 from config import config
 from urllib.request import Request, urlopen
 
 PROPUBLICA_URL = 'https://api.propublica.org/congress/v1/members/'
 GIT_CURRENT_MEMBERS = 'https://theunitedstates.io/congress-legislators/legislators-current.json'
+GOOGLE_CIVIC_API = 'https://www.googleapis.com/civicinfo/v2/representatives/' + urllib.parse.quote_plus('ocd-division/country:us/state:')
 
 git_res = urlopen(GIT_CURRENT_MEMBERS)
 git_members = json.loads(git_res.read().decode())
 
+google_civic_key = config('keys')['google_civic_key']
 propublica_key = config('keys')['propublica_key']
 congress_num = config('congress')['number']
 db_params = config('postgresql')
@@ -19,8 +23,8 @@ db_params = config('postgresql')
 conn = psycopg2.connect(**db_params)
 cur = conn.cursor()
 
-# cur.execute('SELECT id FROM public."Members"')
-# members = cur.fetchall()
+cur.execute('SELECT id FROM public."Members"')
+members = cur.fetchall()
 
 headers = { "X-API-Key": propublica_key }
 
@@ -127,4 +131,270 @@ for mem in git_members:
         member_id
     ))
     conn.commit()
+
+d = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+cur.execute("""SELECT id FROM public."States" """)
+states = cur.fetchall()
+
+for state in states:
+    abb = state[0].lower()
+
+    if abb == "al":
+        req_url = GOOGLE_CIVIC_API + abb + "?alt=json&key=" + google_civic_key
+        response = None
+
+        try:
+            response = urlopen(req_url)
+        except HTTPError as e:
+            print('Error code: ', e.code)
+            continue
+
+        json_res = json.loads(response.read().decode())
+        offices = json_res['offices']
+        officials = json_res['officials']
+
+        for office in offices:
+            if "United States" in office['name']:
+                continue
+
+            officialIndex = office['officialIndices'][0]
+            title = office['name']
+            member = officials[officialIndex]
+            photo_url = None
+            party = None
+            twitter_account = None
+            youtube_account = None
+            facebook_account = None
+            email = None
+            office = None
+            phone = None
+            address = ""
+            url = None
+            city = member['address'][0]['city']
+            zip = member['address'][0]['zip']
+
+            name_parts = member['name'].split(" ")
+            first_name = " ".join(name_parts[0:(len(name_parts) - 1)])
+            last_name = name_parts[len(name_parts) - 1]
+
+            for key, value in member['address'][0].items():
+                if "line" in key:
+                    address += value + "::"
+
+            if 'channels' in member:
+                for channel in member['channels']:
+                    if channel['type'] == 'Facebook':
+                        facebook_account = channel['id']
+                    elif channel['type'] == 'YouTube':
+                        youtube_account = channel['id']
+                    elif channel['type'] == 'Twitter':
+                        twitter_account = channel['id']
+
+            if 'photoUrl' in member:
+                photo_url = member['photoUrl']
+
+            if 'party' in member:
+                party = member['party']
+
+            if 'emails' in member:
+                email = member['emails'][0]
+
+            if 'urls' in member:
+                url = member['urls'][0]
+
+            if 'phones' in member:
+                phone = member['phones'][0]
+
+            sql = """INSERT INTO public."Members" (
+                id,
+                url,
+                youtube_account,
+                twitter_account,
+                facebook_account,
+                title,
+                office,
+                zip,
+                city,
+                party,
+                phone,
+                photo_url,
+                first_name,
+                last_name,
+                email,
+                "createdAt",
+                "updatedAt")
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s)"""
+
+            cur.execute(sql, (
+                abb + "_" + title.replace(" ", "_"),
+                url,
+                youtube_account,
+                twitter_account,
+                facebook_account,
+                title,
+                address,
+                zip,
+                city,
+                party,
+                phone,
+                photo_url,
+                first_name,
+                last_name,
+                email,
+                d,
+                d
+            ))
+            conn.commit()
+
+sql = """INSERT INTO public."Members" (
+        id,
+        date_of_birth,
+        gender,
+        url,
+        twitter_account,
+        facebook_account,
+        title,
+        short_title,
+        start_date,
+        end_date,
+        body,
+        office,
+        contact_form,
+        party,
+        phone,
+        photo_url,
+        first_name,
+        last_name,
+        "createdAt",
+        "updatedAt")
+        VALUES (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s)"""
+
+cur.execute(sql, (
+    "President",
+    "1946-06-14",
+    "M",
+    "https://www.donaldjtrump.com/",
+    "https://twitter.com/realDonaldTrump",
+    "https://www.facebook.com/DonaldTrump/",
+    "President",
+    "Pres.",
+    "2017-01-20",
+    "2021-01-20",
+    "executive",
+    "1600 Pennsylvania Avenue NW",
+    "https://www.whitehouse.gov/contact/",
+    "R",
+    "202-456-1111",
+    "https://www.whitehouse.gov/sites/whitehouse.gov/files/images/45/PE%20Color.jpg",
+    "Donald",
+    "Trump",
+    d,
+    d
+))
+conn.commit()
+
+sql = """INSERT INTO public."Members" (
+        id,
+        date_of_birth,
+        gender,
+        url,
+        twitter_account,
+        facebook_account,
+        title,
+        short_title,
+        start_date,
+        end_date,
+        body,
+        office,
+        contact_form,
+        party,
+        phone,
+        photo_url,
+        first_name,
+        last_name,
+        "createdAt",
+        "updatedAt")
+        VALUES (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s)"""
+
+cur.execute(sql, (
+    "VicePresident",
+    "1959-06-07",
+    "M",
+    "https://www.whitehouse.gov/people/mike-pence/",
+    "https://twitter.com/mike_pence?lang=en",
+    "https://www.facebook.com/mikepence/",
+    "Vice President",
+    "Vice Pres.",
+    "2017-01-20",
+    "2021-01-20",
+    "executive",
+    "1600 Pennsylvania Avenue NW",
+    "https://www.whitehouse.gov/contact/",
+    "R",
+    "202-456-1111",
+    "https://www.whitehouse.gov/sites/whitehouse.gov/files/images/45/VPE%20Color.jpg",
+    "Mike",
+    "Pence",
+    d,
+    d
+))
+conn.commit()
+
 cur.close()

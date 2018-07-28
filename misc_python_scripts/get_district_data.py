@@ -62,7 +62,7 @@ with open('data/Dailykospres.csv', newline='') as csvfile:
 
         d = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        sql = """INSERT INTO public."Districts" (id, state, number, presidential_votes, "createdAt", "updatedAt")
+        sql = """INSERT INTO public."Districts" (id, state_abb, number, presidential_votes, "createdAt", "updatedAt")
             VALUES (%s, %s, %s, %s, %s, %s)"""
 
         cur.execute(sql, (
