@@ -7,6 +7,7 @@ import json
 import datetime
 from config import config
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 PROPUBLICA_URL = 'https://api.propublica.org/congress/v1/members/'
 GIT_CURRENT_MEMBERS = 'https://theunitedstates.io/congress-legislators/legislators-current.json'
@@ -139,129 +140,138 @@ states = cur.fetchall()
 for state in states:
     abb = state[0].lower()
 
-    if abb == "al":
-        req_url = GOOGLE_CIVIC_API + abb + "?alt=json&key=" + google_civic_key
-        response = None
+    req_url = GOOGLE_CIVIC_API + abb + "?alt=json&key=" + google_civic_key
+    response = None
 
-        try:
-            response = urlopen(req_url)
-        except HTTPError as e:
-            print('Error code: ', e.code)
+    try:
+        response = urlopen(req_url)
+    except HTTPError as e:
+        print('Error code: ', e.code)
+        continue
+
+    json_res = json.loads(response.read().decode())
+    offices = json_res['offices']
+    officials = json_res['officials']
+
+    for office in offices:
+        if "United States" in office['name']:
             continue
 
-        json_res = json.loads(response.read().decode())
-        offices = json_res['offices']
-        officials = json_res['officials']
+        officialIndex = office['officialIndices'][0]
+        title = office['name']
+        member = officials[officialIndex]
+        photo_url = None
+        party = None
+        twitter_account = None
+        youtube_account = None
+        facebook_account = None
+        email = None
+        office = None
+        phone = None
+        address = ""
+        url = None
+        city = None
+        zip = None
 
-        for office in offices:
-            if "United States" in office['name']:
-                continue
+        name_parts = member['name'].split(" ")
+        first_name = " ".join(name_parts[0:(len(name_parts) - 1)])
+        last_name = name_parts[len(name_parts) - 1]
 
-            officialIndex = office['officialIndices'][0]
-            title = office['name']
-            member = officials[officialIndex]
-            photo_url = None
-            party = None
-            twitter_account = None
-            youtube_account = None
-            facebook_account = None
-            email = None
-            office = None
-            phone = None
-            address = ""
-            url = None
+        if 'address' in member:
             city = member['address'][0]['city']
             zip = member['address'][0]['zip']
-
-            name_parts = member['name'].split(" ")
-            first_name = " ".join(name_parts[0:(len(name_parts) - 1)])
-            last_name = name_parts[len(name_parts) - 1]
 
             for key, value in member['address'][0].items():
                 if "line" in key:
                     address += value + "::"
 
-            if 'channels' in member:
-                for channel in member['channels']:
-                    if channel['type'] == 'Facebook':
-                        facebook_account = channel['id']
-                    elif channel['type'] == 'YouTube':
-                        youtube_account = channel['id']
-                    elif channel['type'] == 'Twitter':
-                        twitter_account = channel['id']
+        if 'channels' in member:
+            for channel in member['channels']:
+                if channel['type'] == 'Facebook':
+                    facebook_account = channel['id']
+                elif channel['type'] == 'YouTube':
+                    youtube_account = channel['id']
+                elif channel['type'] == 'Twitter':
+                    twitter_account = channel['id']
 
-            if 'photoUrl' in member:
-                photo_url = member['photoUrl']
+        if 'photoUrl' in member:
+            photo_url = member['photoUrl']
 
-            if 'party' in member:
-                party = member['party']
+        if 'party' in member:
+            party = member['party']
 
-            if 'emails' in member:
-                email = member['emails'][0]
+        if 'emails' in member:
+            email = member['emails'][0]
 
-            if 'urls' in member:
-                url = member['urls'][0]
+        if 'urls' in member:
+            url = member['urls'][0]
 
-            if 'phones' in member:
-                phone = member['phones'][0]
+        if 'phones' in member:
+            phone = member['phones'][0]
 
-            sql = """INSERT INTO public."Members" (
-                id,
-                url,
-                youtube_account,
-                twitter_account,
-                facebook_account,
-                title,
-                office,
-                zip,
-                city,
-                party,
-                phone,
-                photo_url,
-                first_name,
-                last_name,
-                email,
-                "createdAt",
-                "updatedAt")
-                VALUES (
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s)"""
+        sql = """INSERT INTO public."Members" (
+            id,
+            state,
+            body,
+            url,
+            youtube_account,
+            twitter_account,
+            facebook_account,
+            title,
+            office,
+            zip,
+            city,
+            party,
+            phone,
+            photo_url,
+            first_name,
+            last_name,
+            email,
+            "createdAt",
+            "updatedAt")
+            VALUES (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s)"""
 
-            cur.execute(sql, (
-                abb + "_" + title.replace(" ", "_"),
-                url,
-                youtube_account,
-                twitter_account,
-                facebook_account,
-                title,
-                address,
-                zip,
-                city,
-                party,
-                phone,
-                photo_url,
-                first_name,
-                last_name,
-                email,
-                d,
-                d
-            ))
-            conn.commit()
+        cur.execute(sql, (
+            abb + "_" + title.replace(" ", "_"),
+            state[0],
+            "state",
+            url,
+            youtube_account,
+            twitter_account,
+            facebook_account,
+            title,
+            address,
+            zip,
+            city,
+            party,
+            phone,
+            photo_url,
+            first_name,
+            last_name,
+            email,
+            d,
+            d
+        ))
+        conn.commit()
 
 sql = """INSERT INTO public."Members" (
         id,
