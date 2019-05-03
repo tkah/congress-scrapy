@@ -3,25 +3,27 @@ Pylint requries too many docstrings. Finish this one later.
 """
 import json
 from datetime import datetime
-from scrapy.spiders import CrawlSpider, Rule
+from scrapy.spiders import XMLFeedSpider, CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
-from scrapy.selector import XmlXPathSelector
-from scrapy.contrib.loader import XPathItemLoader
+from scrapy import Selector
+from scrapy.http import Request
+from scrapy.loader import ItemLoader
 from scrapy.loader.processors import Join, MapCompose
 from w3lib.html import remove_tags
 from scraper_app.items import Bill, ActionItemLoader, LawItemLoader, RelatedBillItemLoader
 
 from ..settings import CONGRESS
 
-class BillSpider(CrawlSpider):
+class BillSpider(XMLFeedSpider):
     """
     Class to retrieve and parse HTML and XML
     from congress.gov bulk data
     """
     name = "congressionalbills"
     start_urls = [
-        "https://www.gpo.gov/fdsys/bulkdata/BILLSTATUS/" + CONGRESS
+        "https://www.govinfo.gov/bulkdata/xml/BILLSTATUS/" + CONGRESS
     ]
+    itertag = "file"
 
     item_fields = {
         'title': './title/text()',
@@ -37,18 +39,29 @@ class BillSpider(CrawlSpider):
         'summary': './summaries/billSummaries/item/text/text()'
     }
 
-    rules = (
-        Rule(LinkExtractor(restrict_xpaths='//div[@id="bulkdata"]', deny=(r'/BILLSTATUS$', r'/BILLSTATUS-\w+\.xml$'))),
-        Rule(LinkExtractor(allow=r'/BILLSTATUS-\w+\.xml$'), callback='parse_bills', follow=True)
-    )
+    # rules = (
+    #     Rule(LinkExtractor(allow=r'BILLSTATUS')),
+    #     Rule(LinkExtractor(allow=r'/BILLSTATUS-\w+\.xml$'), callback='parse_bills', follow=True)
+    # )
+
+    def parse_node(self, response, node):
+        link = node.xpath('link/text()').get()
+        yield Request(link, callback=self.parse_type_link)
+
+    def parse_type_link(self, response):
+        for bill in Selector(response).xpath('//files/file'):
+            link = bill.xpath('link/text()').get()
+            if "xml" not in link:
+                continue
+            yield Request(link, callback=self.parse_bills)
 
     def parse_bills(self, response):
         """ Required function for scrapy to parse URLs. """
-        selector = XmlXPathSelector(response)
+        selector = Selector(response)
 
-        bill = selector.select('//billStatus/bill')
+        bill = selector.xpath('//billStatus/bill')
         # Avoid adding to DB when /bill/updateDate is yesterday or earlier
-        loader = XPathItemLoader(Bill(), selector=bill)
+        loader = ItemLoader(Bill(), selector=bill)
         loader.default_input_processor = MapCompose(remove_tags, str.strip)
         # loader.default_output_processor = Join()
         # iterate over fields and add xpaths to the loader

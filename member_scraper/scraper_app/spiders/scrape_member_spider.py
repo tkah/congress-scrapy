@@ -5,7 +5,7 @@ import json
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.selector import XmlXPathSelector
-from scrapy.contrib.loader import XPathItemLoader
+from scrapy.loader import XPathItemLoader
 from scrapy.loader.processors import Join, MapCompose
 from w3lib.html import remove_tags
 
