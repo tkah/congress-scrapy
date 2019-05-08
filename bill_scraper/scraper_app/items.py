@@ -30,6 +30,8 @@ class Bill(Item):
     congress = Field(output_processor=Join())
     related_bills = Field(output_processor=Join())
     created_at = Field()
+    latest_senate_vote_positions = Field()
+    latest_house_vote_positions = Field()
 
 class BillAction(Item):
     """Container for action items"""

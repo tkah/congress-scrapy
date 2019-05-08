@@ -45,5 +45,7 @@ class Bills(DeclarativeBase):
     laws = Column('laws', Text)
     actions = Column('actions', Text)
     related_bills = Column('related_bills', Text)
+    latest_house_vote_positions = Column('latest_house_vote_positions', Text)
+    latest_senate_vote_positions = Column('latest_senate_vote_positions', Text)
     created_at = Column('createdAt', DateTime, default=datetime.datetime.utcnow)
     updated_at = Column('updatedAt', DateTime, default=datetime.datetime.utcnow)

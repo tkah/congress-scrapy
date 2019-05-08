@@ -9,10 +9,11 @@ from scrapy import Selector
 from scrapy.http import Request
 from scrapy.loader import ItemLoader
 from scrapy.loader.processors import Join, MapCompose
+import urllib.request
 from w3lib.html import remove_tags
 from scraper_app.items import Bill, ActionItemLoader, LawItemLoader, RelatedBillItemLoader
 
-from ..settings import CONGRESS
+from ..settings import CONGRESS, PROPUBLICA_KEY
 
 class BillSpider(XMLFeedSpider):
     """
@@ -58,6 +59,11 @@ class BillSpider(XMLFeedSpider):
     def parse_bills(self, response):
         """ Required function for scrapy to parse URLs. """
         selector = Selector(response)
+
+        headers = { "X-API-Key": PROPUBLICA_KEY }
+        session = "1" if datetime.now().year % 2 == 1 else "2"
+        roll_votes_first = "https://api.propublica.org/congress/v1/" + CONGRESS + "/"
+        roll_votes_second = "/sessions/" + session + "/votes/" #17.json"
 
         bill = selector.xpath('//billStatus/bill')
         # Avoid adding to DB when /bill/updateDate is yesterday or earlier
@@ -121,6 +127,26 @@ class BillSpider(XMLFeedSpider):
         loader.add_value('latest_senate_vote_roll', latest_senate_vote_roll)
         loader.add_value('latest_senate_vote_date', latest_senate_vote_date)
 
+        if (latest_house_vote_roll is not None):
+            votes_obj = {}
+            votes_url = roll_votes_first + "house" + roll_votes_second + latest_house_vote_roll + ".json"
+            jsonresponse = urllib.request.urlopen(urllib.request.Request(votes_url, None, headers))
+            response_data = json.loads(jsonresponse.read().decode())
+            positions = response_data["results"]["votes"]["vote"]["positions"]
+            for position in positions:
+                votes_obj[position["member_id"]] = position["vote_position"]
+            loader.add_value('latest_house_vote_positions', json.dumps(votes_obj))
+
+        if (latest_senate_vote_roll is not None):
+            votes_obj = {}
+            votes_url = roll_votes_first + "senate" + roll_votes_second + latest_senate_vote_roll + ".json"
+            jsonresponse = urllib.request.urlopen(urllib.request.Request(votes_url, None, headers))
+            response_data = json.loads(jsonresponse.read().decode())
+            positions = response_data["results"]["votes"]["vote"]["positions"]
+            for position in positions:
+                votes_obj[position["member_id"]] = position["vote_position"]
+            loader.add_value('latest_senate_vote_positions', json.dumps(votes_obj))
+
         actions_arr = []
         for action in bill.xpath('./actions/item'):
             actions_arr.append(self.parse_actions(action))
@@ -142,6 +168,10 @@ class BillSpider(XMLFeedSpider):
         loader.add_value('congress', CONGRESS)
         loader.add_value('id', response.url.split("/")[-1][11:-4])
         yield loader.load_item()
+
+    def parse_bill_votes(self, response):
+        response = urlopen(Request(req_url, None, headers))
+        jsonresponse = json.loads(response.body_as_unicode())
 
     def parse_laws(self, response):
         action_loader = LawItemLoader(selector = response)
