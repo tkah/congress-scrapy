@@ -2,6 +2,8 @@
 
 Two scrapers that output [Congressional Bill data](https://www.gpo.gov/fdsys/bulkdata/BILLSTATUS) and Congressional Member data ([house](http://clerk.house.gov/xml/lists/MemberData.xml), [senate](https://www.senate.gov/general/contact_information/senators_cfm.xml)) to a Postgres database. Scrapers written using [Scrapy](https://scrapy.org/) following [this tutorial](http://newcoder.io/scrape/intro/).
 
+Used by my site https://betterknowyourdistrict.com/
+
 ## Running
 
 * Install the python dependencies: `pip install -r requirements.txt`
